@@ -1,0 +1,138 @@
+defaults:
+  - training: scaling_fast
+  - _self_
+
+general:
+  exp_name: dummy
+  run_name: null
+  base_dir: ${oc.env:PWD}/exp
+  exp_dir: ${general.base_dir}/${general.exp_name}
+  overwrite_existing: true
+  mlflow:
+    db: ${general.base_dir}/mlflow.db
+    artifacts: ${general.base_dir}/artifacts
+  debug: false
+  verbose: true
+  seed: 42
+
+data:
+  dataset: scaling
+  subset: dim_${data.dim_z}_mode_${data.nature.mode}_seed_${data.nature.seed}
+  dim_z: 3
+  dim_x: ${data.dim_z}
+  data_dir: ${general.base_dir}/data/${data.dataset}/${data.subset}
+  always_generate_new_data: false
+  samples:
+    train: 100000
+    val: 10000
+    test: 10000
+  nature:
+    mode: random
+    seed: 42
+    causal_effects: bimodal
+    manifold_thickness: 1.0e-09
+    observation_noise: null
+  lifelong:
+    enabled: false
+    sequential: false
+    stage: 0
+    num_stages: 3
+    mode: overlap_pairs
+    targets_per_stage: 2
+    include_no_intervention: true
+    apply_to:
+      - train
+      - val
+    stage_labels: null
+    evaluate_all_stages: true
+    eval_seen_only: true
+    save_stage_checkpoints: true
+    replay:
+      enabled: false
+      samples_per_stage: 4096
+      seed: 42
+
+model:
+  type: intervention_noise_vae
+  dim_x: ${data.dim_x}
+  dim_z: ${data.dim_z}
+  overwrite_latents: false
+  averaging_strategy: stochastic
+  load: null
+  scm:
+    type: mlp
+    homoskedastic: false
+    adjacency_matrix: none
+    manifold_thickness: 0.01
+    hidden_units: 64
+    hidden_layers: 2
+    min_std: 0.2
+    three_d:
+      enabled: false
+      layout: cube
+      seed: 42
+      distance_power: 1.0
+  encoder:
+    type: mlp
+    flip: false
+    hidden_units: 64
+    hidden_layers: 2
+    std: 0.01
+    min_std: 0.0001
+    fix_std: false
+  decoder:
+    hidden_units: 64
+    hidden_layers: 2
+    std: 0.1
+    min_std: 0.001
+    fix_std: false
+  intervention_encoder:
+    type: learnable_heuristic
+    hidden_units: 64
+    hidden_layers: 2
+  three_d_spiking:
+    enabled: false
+    neurons: 27
+    time_steps: 6
+    layout: cube
+    seed: 42
+    threshold: 0.5
+    decay: 0.85
+    input_scale: 0.2
+    recurrent_scale: 0.05
+    distance_power: 1.0
+    train_recurrent: false
+    target_spike_rate: 0.08
+    surrogate_slope: 8.0
+    posterior_blend: 0.0
+    enable_causal_plasticity: true
+    causal_synapse_scale: 0.03
+    plasticity_drive_scale: 0.05
+    plasticity_effect_power: 1.0
+    detach_plasticity_teacher: true
+
+eval:
+  eval_partition: test
+  iwae_samples: 10
+  batchsize: 512
+  beta: 1.0
+  full_likelihood: false
+  likelihood_reduction: sum
+  enco_lambda: 0.01
+  graph_sampling:
+    mode: deterministic
+    temperature: 1.0
+    samples: 1
+  causal_pruning:
+    enabled: false
+    partition: test
+    relative_threshold: 0.5
+    absolute_threshold: 0.0
+    use_stage_support: true
+    min_stage_support: 1
+
+plotting:
+  fontsize: 11
+  pagewidth: 11
+  save_three_d_diagnostics: true
+  save_three_d_spiking_diagnostics: true
